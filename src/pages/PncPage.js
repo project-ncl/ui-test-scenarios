@@ -98,6 +98,25 @@ export default class PncPage {
         await this.page.waitForSelector(selector);
         return this.page.$eval(selector, e => e.content);
     }
+
+    /**
+     * Reliable way of typing into input
+     * element.type() happens to not finish the typing very often: https://github.com/puppeteer/puppeteer/issues/1648
+     */
+    async simulateType(elem, value) {
+        await elem.evaluate((el, text) => {
+            // Refer to https://stackoverflow.com/a/46012210/440432 for the below solution/code
+            const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value').set;
+            nativeInputValueSetter.call(el, text);
+
+            const events = ['click', 'focus', 'keydown', 'keypress', 'mousedown', 'compositionend', 'compositionstart', 'blur', 'input']
+            events.forEach(event => {
+                const ev = new Event(event, {bubbles: true, view: window, cancelable: true});
+                el.dispatchEvent(ev);
+            });
+
+        }, value);
+    }
     
    /**
     * Login simulating a user clicking through the page login link.

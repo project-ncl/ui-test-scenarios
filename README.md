@@ -11,7 +11,12 @@ PNC_USERNAME=<username to log in with>
 PNC_PASSWORD=<password to log in with>
 HEADLESS=<true|false> 
 ```
-NOTE: Headless should be false for CI environments. Set to true when developing / debugging. 
+NOTE: Headless should be false for CI environments. Set to true when developing / debugging.
+
+To prepare puppeteer environment run:
+```
+node node_modules/puppeteer/install.js
+``` 
 
 ## Running the tests
 Run all tests : `npm test`
