@@ -25,6 +25,14 @@ export default class BuildConfigDetailPage extends PncPage {
     getId() {
         return this.#id;
     }
+    // for test
+    async getTableRows() {
+      return this.page.$$('table tr');
+    }
+    // for test
+    async getRowNames() {
+      return this.page.$$eval('table tr td a', e => e.textContent);
+    }
 
     async getBuildButton() {
         return this.waitForVisibleElement('button[ng-click="$ctrl.build()"]');

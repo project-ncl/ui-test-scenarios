@@ -16,6 +16,10 @@ export default class ProjectDetailPage extends PncPage {
         this.#id = id;
     }
 
+    async ready() {
+        await this.page.waitForSelector('h1.header-title', { visible: true });
+    }
+
     async goto() {
         return super.goto(`#/projects/${this.#id}`);
     }

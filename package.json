@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "type": "module",
   "scripts": {
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --maxWorkers 1 --config ./jest.config.js"
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --maxWorkers 1 --env=jsdom --config ./jest.config.js"
   },
   "author": "Alex Creasy <acreasy@redhat.com>",
   "license": "Apache-2.0",

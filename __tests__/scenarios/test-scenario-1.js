@@ -77,7 +77,7 @@ describe('Test Scenario 1: Create a simple BuildConfig & execute a build', () =>
         const newProjectName = `z_automated-test-project-${Date.now()}`;
         const projectCreatePage = new ProjectCreatePage(page);
         await projectCreatePage.goto();
-  
+
         let newProjectPage = await projectCreatePage.createProject({ name: newProjectName });
         
         expect(await newProjectPage.getMetaProperty('entity-id')).toBeDefined();

@@ -5,6 +5,7 @@ export default class CreateBuildConfigWizard extends PncPage {
 
     async waitForWizardReady() {
         await this.waitForVisibleElement('pnc-create-build-config-wizard[data-wizard-ready="true"]');
+        await this.waitForElementToContainText('h4.modal-title', "Create Build Config");
     }
 
     async getBuildConfigNameInput() {
@@ -35,16 +36,22 @@ export default class CreateBuildConfigWizard extends PncPage {
         return this.waitForVisibleElement('input[name="revision"]');
     }
 
+    async getCreationResult() {
+        return Promise.race([
+            this.waitForVisibleElement('div.wizard-pf-success-icon'),
+            this.waitForVisibleElement('pf-toast-notification div.alert-danger').then(async e => {
+                let message = await e.$eval('span span.ng-binding', e => e.textContent);
+                throw new Error("Operation did not succeed: " + message);
+            })
+        ]);
+    }
+
     async typeBuildConfigName(name) {
-        await (await this.getBuildConfigNameInput()).type(name);
+        await this.simulateType(await this.getBuildConfigNameInput(), name);
     }
 
     async typeEnvironment(environment) {
-        await (await this.getEnvironmentCombobox()).type(environment);
-    }
-
-    async selectFirstEnvironmentOption() {
-        await (await this.getFirstEnvironmentOption()).click();
+        await this.selectComboboxValue('pnc-environment-combobox', environment);
     }
 
     async selectBuildType(buildType) {
@@ -61,6 +68,27 @@ export default class CreateBuildConfigWizard extends PncPage {
 
     async typeRevision(revision) {
         await (await this.getRevisionInput()).type(revision);
+    }
+
+    /**
+     * Only reliable way of filling in Patternfly combobox.
+     *
+     * @param selector
+     * @param value
+     * @returns {Promise<void>}
+     */
+    async selectComboboxValue(selector, value) {
+        let comboboxInput = await this.waitForVisibleElement(selector + ' input.combobox');
+        await comboboxInput.press('Backspace');
+        await comboboxInput.evaluate((e, dep) => e.value = dep, value.slice(0, -1));
+        await comboboxInput.type(" "); // Trigger list loading
+        await this.waitForElementToContainText(selector + ' li.px-combobox-option', value);
+        await (await this.waitForVisibleElement(selector + ' li.px-combobox-option')).click();
+    }
+
+    async addDependency(dependency) {
+        await this.selectComboboxValue('pnc-build-config-combobox', dependency);
+        await (await this.waitForVisibleElement('#addButton:not([disabled])')).click();
     }
 
     async clickNextButton() {
@@ -89,28 +117,30 @@ export default class CreateBuildConfigWizard extends PncPage {
 
 
     async createBuildConfig(buildConfigOptions) {
-        // TODO: remove waitForTimeout calls to improve test speed and reliability 
         await this.waitForWizardReady();
-
-        await this.page.waitForTimeout(2000);
 
         await this.typeBuildConfigName(buildConfigOptions.name);
 
         await this.typeEnvironment(buildConfigOptions.environment);
 
-        //TODO find a more reliable way to select environment option
-        await this.page.waitForTimeout(2000);
-        await this.selectFirstEnvironmentOption();
-        await this.page.waitForTimeout(2000);
-
         await this.selectBuildType(buildConfigOptions.buildType);
 
         await this.typeBuildScript(buildConfigOptions.buildScript);
 
+        await this.clickNextButton();
+        await this.clickNextButton();
+        await this.clickNextButton(); // Dependencies tab
+
+        if (buildConfigOptions.dependencies) {
+            for (let dependency of buildConfigOptions.dependencies) {
+                await this.addDependency(dependency);
+            }
+        }
+
         await this.gotoRepositoryTab();
 
         await this.typeRepositoryUrl(buildConfigOptions.repositoryUrl);
-        await this.waitForVisibleElement('div.alert.alert-info');
+        await this.waitForElementToContainText('div.alert.alert-info p', "repository is already synced.");
 
         await this.typeRevision(buildConfigOptions.revision);
 
@@ -119,10 +149,6 @@ export default class CreateBuildConfigWizard extends PncPage {
         // Next button is now the create button
         await this.clickNextButton();
 
-        try {
-            await this.waitForVisibleElement('.wizard-pf-success-icon');
-        } catch (error) {
-            throw new Error('Timed out waiting for successful build config creation, this could be because it failed');
-        }
+        await this.getCreationResult();
     }
 }
